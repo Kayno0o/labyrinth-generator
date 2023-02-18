@@ -2,18 +2,19 @@ import { CanvasRenderingContext2D, createCanvas } from 'canvas';
 import fs from 'fs';
 import { randomInt } from '../utils';
 
-type Direction = {
-  dir: 'bottom' | 'left' | 'top' | 'right';
-  reverseDir: 'bottom' | 'left' | 'top' | 'right';
-  x: 1 | -1 | 0;
-  y: 1 | -1 | 0;
+let maxPos = 0;
+
+const [N, S, E, W] = [1, 2, 4, 8];
+const OPPOSITES = { [N]: S, [S]: N, [E]: W, [W]: E };
+const directions: { [direction: number]: [number, number] } = {
+  [E]: [1, 0],
+  [N]: [0, -1],
+  [S]: [0, 1],
+  [W]: [-1, 0],
 };
 
 class Bloc {
-  bottom: boolean = true;
-  left: boolean = true;
-  right: boolean = true;
-  top: boolean = true;
+  value: number = N + S + W + E;
   x: number;
   y: number;
   pos: number | null = null;
@@ -23,15 +24,6 @@ class Bloc {
     this.y = y;
   }
 }
-
-let maxPos = 0;
-
-const directions: Array<Direction> = [
-  { dir: 'bottom', reverseDir: 'top', x: 0, y: 1 },
-  { dir: 'top', reverseDir: 'bottom', x: 0, y: -1 },
-  { dir: 'right', reverseDir: 'left', x: 1, y: 0 },
-  { dir: 'left', reverseDir: 'right', x: -1, y: 0 },
-];
 
 export class Maze {
   grid: Array<Array<Bloc>> = [];
@@ -47,7 +39,7 @@ export class Maze {
     this.strokeWeight = strokeWeight;
   }
 
-  generateMaze() {
+  public generateMaze() {
     this.grid = [...Array(this.width)].map((_, x) => [...Array(this.height)].map((_, y) => new Bloc(x, y)));
 
     this.carveGrid();
@@ -66,60 +58,68 @@ export class Maze {
   }
 
   private carveBloc(bloc: Bloc, i = 0): Bloc | null {
-    const tries = [0, 1, 2, 3];
+    let [nextBloc, dir] = this.getNextBloc(bloc);
 
+    if (!nextBloc) {
+      if (bloc.pos === 0) return;
+
+      do {
+        bloc = this.getPreviousBloc(bloc);
+
+        if (!bloc || bloc.pos === 0) return;
+
+        [nextBloc, dir] = this.getNextBloc(bloc);
+      } while (!nextBloc);
+
+      return this.carveBloc(bloc, ++i);
+    }
+
+    bloc.value -= dir;
+    nextBloc.value -= OPPOSITES[dir];
+
+    nextBloc.pos = i;
+
+    if (i > maxPos) maxPos = i;
+
+    return this.carveBloc(nextBloc, ++i);
+  }
+
+  private getNextBloc(bloc: Bloc): [Bloc | null, number] {
+    const tries = [1, 2, 4, 8];
+
+    let dir: number;
     let randomPos: number;
-    let dir: Direction;
     let nextBloc: Bloc | null;
 
-    if (bloc.bottom || bloc.top || bloc.right || bloc.left) {
+    if (bloc.value & S || bloc.value & N || bloc.value & E || bloc.value & W) {
       do {
         randomPos = randomInt(tries.length);
-        dir = directions[tries[randomPos]];
+        dir = tries[randomPos];
 
         tries.splice(randomPos, 1);
 
-        if (!bloc[dir.dir]) {
+        if (!(bloc.value & dir)) {
           nextBloc = null;
           continue;
         }
 
         nextBloc = this.getBlocFromDirection(dir, bloc);
 
-        if (!nextBloc || nextBloc.pos !== null || !nextBloc[dir.reverseDir]) {
+        if (!nextBloc || nextBloc.pos !== null || !(nextBloc.value & OPPOSITES[dir])) {
           nextBloc = null;
           continue;
         }
       } while (tries.length !== 0 && nextBloc === null);
     }
 
-    if (!nextBloc) {
-      if (bloc.pos === 0) return;
-
-      const previousBloc = this.getPreviousBloc(bloc);
-
-      if (!previousBloc) return;
-
-      this.carveBloc(previousBloc, ++i);
-
-      return;
-    }
-
-    bloc[dir.dir] = false;
-    nextBloc[dir.reverseDir] = false;
-
-    nextBloc.pos = i;
-
-    if (i > maxPos) maxPos = i;
-
-    this.carveBloc(nextBloc, ++i);
+    return [nextBloc, dir];
   }
 
   private getPreviousBloc(bloc: Bloc): Bloc | null {
     let prevBloc: Bloc | null = null;
 
-    directions.forEach((dir) => {
-      if (bloc[dir.dir]) return;
+    [N, S, E, W].forEach((dir) => {
+      if (bloc.value & dir) return;
 
       const b = this.getBlocFromDirection(dir, bloc);
 
@@ -131,9 +131,9 @@ export class Maze {
     return prevBloc;
   }
 
-  private getBlocFromDirection(dir: Direction, bloc: Bloc): Bloc | null {
-    const x = bloc.x + dir.x;
-    const y = bloc.y + dir.y;
+  private getBlocFromDirection(dir: number, bloc: Bloc): Bloc | null {
+    const x = bloc.x + directions[dir][0];
+    const y = bloc.y + directions[dir][1];
 
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
 
@@ -148,7 +148,6 @@ export class Maze {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = 'black';
-    ctx.font = `${this.gridSize / 3}px serif`;
     ctx.lineWidth = this.strokeWeight;
     ctx.lineCap = 'round';
 
@@ -204,28 +203,24 @@ export class Maze {
       );
     }
 
-    // if (bloc.pos !== null) {
-    //   ctx.fillText(String(bloc.pos), l + gridSize / 5, b - gridSize / 5);
-    // }
-
     ctx.beginPath();
 
-    if (bloc.bottom) {
+    if (bloc.value & S) {
       ctx.moveTo(l, b);
       ctx.lineTo(r, b);
     }
 
-    if (bloc.top) {
+    if (bloc.value & N) {
       ctx.moveTo(l, t);
       ctx.lineTo(r, t);
     }
 
-    if (bloc.left) {
+    if (bloc.value & W) {
       ctx.moveTo(l, t);
       ctx.lineTo(l, b);
     }
 
-    if (bloc.right) {
+    if (bloc.value & E) {
       ctx.moveTo(r, t);
       ctx.lineTo(r, b);
     }
