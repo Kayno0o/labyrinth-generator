@@ -1,11 +1,11 @@
-import { CanvasRenderingContext2D, createCanvas } from 'canvas';
+import { Canvas, CanvasRenderingContext2D, createCanvas } from 'canvas';
 import fs from 'fs';
 import { randomInt } from '../utils';
 
 let maxPos = 0;
 
 const [N, S, E, W] = [1, 2, 4, 8];
-const OPPOSITES = { [N]: S, [S]: N, [E]: W, [W]: E };
+const OPPOSITES = { [E]: W, [N]: S, [S]: N, [W]: E };
 const directions: { [direction: number]: [number, number] } = {
   [E]: [1, 0],
   [N]: [0, -1],
@@ -31,30 +31,34 @@ export class Maze {
   height: number;
   gridSize: number;
   strokeWeight: number;
+  canvas: Canvas;
+  ctx: CanvasRenderingContext2D;
+  start: Bloc;
+  end: Bloc;
 
   constructor(width: number = 20, height: number = 20, gridSize: number = 100, strokeWeight: number = 30) {
     this.width = width;
     this.height = height;
     this.gridSize = gridSize;
     this.strokeWeight = strokeWeight;
+
+    this.generateMaze();
   }
 
   public generateMaze() {
     this.grid = [...Array(this.width)].map((_, x) => [...Array(this.height)].map((_, y) => new Bloc(x, y)));
 
-    this.carveGrid();
+    this.canvas = createCanvas(this.width * this.gridSize, this.height * this.gridSize);
+    this.ctx = this.canvas.getContext('2d');
 
-    this.drawGrid();
+    this.start = this.getRandomBloc();
+    this.start.pos = 0;
 
-    console.log('END');
-  }
+    do {
+      this.end = this.getRandomBloc();
+    } while (!this.end || this.end.pos === 0);
 
-  private carveGrid() {
-    const startingBloc: Bloc = this.getRandomBloc();
-
-    startingBloc.pos = 0;
-
-    this.carveBloc(startingBloc, 1);
+    this.carveBloc(this.start, 1);
   }
 
   private carveBloc(bloc: Bloc, i = 0): Bloc | null {
@@ -140,22 +144,12 @@ export class Maze {
     return this.grid[x][y];
   }
 
-  private drawGrid() {
-    const canvas = createCanvas(this.width * this.gridSize, this.height * this.gridSize);
-    const ctx = canvas.getContext('2d');
+  public drawMaze() {
+    this.ctx.fillStyle = 'white';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = 'black';
-    ctx.lineWidth = this.strokeWeight;
-    ctx.lineCap = 'round';
-
-    let randomBloc: Bloc;
-
-    do {
-      randomBloc = this.getRandomBloc();
-    } while (!randomBloc || randomBloc.pos === 0);
+    this.ctx.lineWidth = this.strokeWeight;
+    this.ctx.lineCap = 'round';
 
     for (let x = 0; x < this.grid.length; x++) {
       const col = this.grid[x];
@@ -168,16 +162,46 @@ export class Maze {
           color = 'green';
         }
 
-        if (bloc.pos === randomBloc.pos) {
+        if (bloc.pos === this.end.pos) {
           color = 'red';
         }
 
-        this.drawBloc(ctx, bloc, color);
+        this.drawBloc(bloc, color);
       }
     }
+  }
 
-    const buffer = canvas.toBuffer('image/png');
-    fs.writeFileSync(__dirname + '/1.png', buffer);
+  public drawSolution(color: string = 'blue') {
+    let previousBloc: Bloc | null = this.end;
+
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = this.strokeWeight / 4;
+
+    do {
+      const [x1, y1] = [
+        previousBloc.x * this.gridSize + this.gridSize / 2,
+        previousBloc.y * this.gridSize + this.gridSize / 2,
+      ];
+
+      previousBloc = this.getPreviousBloc(previousBloc);
+
+      if (previousBloc === null) break;
+
+      const [x2, y2] = [
+        previousBloc.x * this.gridSize + this.gridSize / 2,
+        previousBloc.y * this.gridSize + this.gridSize / 2,
+      ];
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(x1, y1);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.stroke();
+    } while (previousBloc && previousBloc.pos !== 0);
+  }
+
+  public saveCanvas(path: string = __dirname + '/1.png') {
+    const buffer = this.canvas.toBuffer('image/png');
+    fs.writeFileSync(path, buffer);
   }
 
   private getRandomBloc(): Bloc {
@@ -186,7 +210,7 @@ export class Maze {
     return this.grid[x][y];
   }
 
-  private drawBloc(ctx: CanvasRenderingContext2D, bloc: Bloc, color: string | null = null) {
+  private drawBloc(bloc: Bloc, color: string | null = null) {
     const l = bloc.x * this.gridSize;
     const r = bloc.x * this.gridSize + this.gridSize;
 
@@ -194,8 +218,8 @@ export class Maze {
     const b = bloc.y * this.gridSize + this.gridSize;
 
     if (color) {
-      ctx.fillStyle = color;
-      ctx.fillRect(
+      this.ctx.fillStyle = color;
+      this.ctx.fillRect(
         l + this.strokeWeight,
         t + this.strokeWeight,
         this.gridSize - this.strokeWeight * 2,
@@ -203,28 +227,28 @@ export class Maze {
       );
     }
 
-    ctx.beginPath();
+    this.ctx.beginPath();
 
     if (bloc.value & S) {
-      ctx.moveTo(l, b);
-      ctx.lineTo(r, b);
+      this.ctx.moveTo(l, b);
+      this.ctx.lineTo(r, b);
     }
 
     if (bloc.value & N) {
-      ctx.moveTo(l, t);
-      ctx.lineTo(r, t);
+      this.ctx.moveTo(l, t);
+      this.ctx.lineTo(r, t);
     }
 
     if (bloc.value & W) {
-      ctx.moveTo(l, t);
-      ctx.lineTo(l, b);
+      this.ctx.moveTo(l, t);
+      this.ctx.lineTo(l, b);
     }
 
     if (bloc.value & E) {
-      ctx.moveTo(r, t);
-      ctx.lineTo(r, b);
+      this.ctx.moveTo(r, t);
+      this.ctx.lineTo(r, b);
     }
 
-    ctx.stroke();
+    this.ctx.stroke();
   }
 }
