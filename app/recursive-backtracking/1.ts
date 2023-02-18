@@ -1,6 +1,6 @@
 import { Canvas, CanvasRenderingContext2D, createCanvas } from 'canvas';
 import fs from 'fs';
-import { randomInt } from '../utils';
+import { map, randomInt } from '../utils';
 
 let maxPos = 0;
 
@@ -35,12 +35,20 @@ export class Maze {
   ctx: CanvasRenderingContext2D;
   start: Bloc;
   end: Bloc;
+  hasRainbowGrid: boolean;
 
-  constructor(width: number = 20, height: number = 20, gridSize: number = 100, strokeWeight: number = 30) {
+  constructor(
+    width: number = 20,
+    height: number = 20,
+    gridSize: number = 100,
+    strokeWeight: number = 30,
+    hasRainbowGrid: boolean = false,
+  ) {
     this.width = width;
     this.height = height;
     this.gridSize = gridSize;
     this.strokeWeight = strokeWeight;
+    this.hasRainbowGrid = hasRainbowGrid;
 
     this.generateMaze();
   }
@@ -59,6 +67,66 @@ export class Maze {
     } while (!this.end || this.end.pos === 0);
 
     this.carveBloc(this.start, 1);
+  }
+
+  public drawMaze() {
+    this.ctx.fillStyle = 'white';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.ctx.lineWidth = this.strokeWeight;
+    this.ctx.lineCap = 'round';
+
+    for (let x = 0; x < this.grid.length; x++) {
+      const col = this.grid[x];
+      for (let y = 0; y < col.length; y++) {
+        const bloc = col[y];
+
+        let color: string | null = null;
+
+        if (bloc.pos === 0) {
+          color = 'green';
+        }
+
+        if (bloc.pos === this.end.pos) {
+          color = 'red';
+        }
+
+        this.drawBloc(bloc, color);
+      }
+    }
+  }
+
+  public drawSolution(color: string = 'blue', strokeWeight = 10) {
+    let previousBloc: Bloc | null = this.end;
+
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = strokeWeight;
+
+    do {
+      const [x1, y1] = [
+        previousBloc.x * this.gridSize + this.gridSize / 2,
+        previousBloc.y * this.gridSize + this.gridSize / 2,
+      ];
+
+      previousBloc = this.getPreviousBloc(previousBloc);
+
+      if (previousBloc === null) break;
+
+      const [x2, y2] = [
+        previousBloc.x * this.gridSize + this.gridSize / 2,
+        previousBloc.y * this.gridSize + this.gridSize / 2,
+      ];
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(x1, y1);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.stroke();
+    } while (previousBloc && previousBloc.pos !== 0);
+  }
+
+  public saveCanvas(path: string = __dirname + '/1.png') {
+    const buffer = this.canvas.toBuffer('image/png');
+    fs.writeFileSync(path, buffer);
   }
 
   private carveBloc(bloc: Bloc, i = 0): Bloc | null {
@@ -144,66 +212,6 @@ export class Maze {
     return this.grid[x][y];
   }
 
-  public drawMaze() {
-    this.ctx.fillStyle = 'white';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-    this.ctx.lineWidth = this.strokeWeight;
-    this.ctx.lineCap = 'round';
-
-    for (let x = 0; x < this.grid.length; x++) {
-      const col = this.grid[x];
-      for (let y = 0; y < col.length; y++) {
-        const bloc = col[y];
-
-        let color: string | null = null;
-
-        if (bloc.pos === 0) {
-          color = 'green';
-        }
-
-        if (bloc.pos === this.end.pos) {
-          color = 'red';
-        }
-
-        this.drawBloc(bloc, color);
-      }
-    }
-  }
-
-  public drawSolution(color: string = 'blue') {
-    let previousBloc: Bloc | null = this.end;
-
-    this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = this.strokeWeight / 4;
-
-    do {
-      const [x1, y1] = [
-        previousBloc.x * this.gridSize + this.gridSize / 2,
-        previousBloc.y * this.gridSize + this.gridSize / 2,
-      ];
-
-      previousBloc = this.getPreviousBloc(previousBloc);
-
-      if (previousBloc === null) break;
-
-      const [x2, y2] = [
-        previousBloc.x * this.gridSize + this.gridSize / 2,
-        previousBloc.y * this.gridSize + this.gridSize / 2,
-      ];
-
-      this.ctx.beginPath();
-      this.ctx.moveTo(x1, y1);
-      this.ctx.lineTo(x2, y2);
-      this.ctx.stroke();
-    } while (previousBloc && previousBloc.pos !== 0);
-  }
-
-  public saveCanvas(path: string = __dirname + '/1.png') {
-    const buffer = this.canvas.toBuffer('image/png');
-    fs.writeFileSync(path, buffer);
-  }
-
   private getRandomBloc(): Bloc {
     const [x, y] = [randomInt(this.width), randomInt(this.height)];
 
@@ -227,6 +235,8 @@ export class Maze {
       );
     }
 
+    if (this.hasRainbowGrid)
+      this.ctx.strokeStyle = `hsl(${map(bloc.x + bloc.y, 0, this.width + this.height, 0, 360)} 80% 40%)`;
     this.ctx.beginPath();
 
     if (bloc.value & S) {
