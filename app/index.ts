@@ -1,3 +1,5 @@
-import recursiveBacktrackingMaze1 from './recursive-backtracking/1';
+import { Maze } from './recursive-backtracking/1';
 
-recursiveBacktrackingMaze1();
+const maze = new Maze();
+
+maze.generateMaze();

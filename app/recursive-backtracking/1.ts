@@ -1,7 +1,6 @@
 import { CanvasRenderingContext2D, createCanvas } from 'canvas';
 import fs from 'fs';
-
-type Grid = Array<Array<Bloc>>;
+import { randomInt } from '../utils';
 
 type Direction = {
   dir: 'bottom' | 'left' | 'top' | 'right';
@@ -25,11 +24,6 @@ class Bloc {
   }
 }
 
-const width = 21;
-const height = 29;
-const gridSize = 100;
-const strokeWeight: number = 30;
-
 let maxPos = 0;
 
 const directions: Array<Direction> = [
@@ -39,194 +33,203 @@ const directions: Array<Direction> = [
   { dir: 'left', reverseDir: 'right', x: -1, y: 0 },
 ];
 
-export default function generateMaze() {
-  const canvas = createCanvas(width * gridSize, height * gridSize);
-  const ctx = canvas.getContext('2d');
+export class Maze {
+  grid: Array<Array<Bloc>> = [];
+  width: number;
+  height: number;
+  gridSize: number;
+  strokeWeight: number;
 
-  ctx.fillStyle = 'white';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  constructor(width: number = 20, height: number = 20, gridSize: number = 100, strokeWeight: number = 30) {
+    this.width = width;
+    this.height = height;
+    this.gridSize = gridSize;
+    this.strokeWeight = strokeWeight;
+  }
 
-  ctx.fillStyle = 'black';
-  ctx.font = `${gridSize / 3}px serif`;
-  ctx.lineWidth = strokeWeight;
-  ctx.lineCap = 'round';
+  generateMaze() {
+    this.grid = [...Array(this.width)].map((_, x) => [...Array(this.height)].map((_, y) => new Bloc(x, y)));
 
-  const grid: Grid = [...Array(width)].map((_, x) => [...Array(height)].map((_, y) => new Bloc(x, y)));
+    this.carveGrid();
 
-  carveGrid(grid);
+    this.drawGrid();
 
-  drawGrid(ctx, grid);
+    console.log('END');
+  }
 
-  const buffer = canvas.toBuffer('image/png');
-  fs.writeFileSync(__dirname + '/1.png', buffer);
+  private carveGrid() {
+    const startingBloc: Bloc = this.getRandomBloc();
 
-  console.log('END');
-}
+    startingBloc.pos = 0;
 
-function carveGrid(grid: Grid) {
-  const startingBloc: Bloc = getRandomBloc(grid);
+    this.carveBloc(startingBloc, 1);
+  }
 
-  startingBloc.pos = 0;
+  private carveBloc(bloc: Bloc, i = 0): Bloc | null {
+    const tries = [0, 1, 2, 3];
 
-  carveBloc(startingBloc, grid, 1);
-}
+    let randomPos: number;
+    let dir: Direction;
+    let nextBloc: Bloc | null;
 
-function carveBloc(bloc: Bloc, grid: Grid, i = 0): Bloc | null {
-  const tries = [0, 1, 2, 3];
+    if (bloc.bottom || bloc.top || bloc.right || bloc.left) {
+      do {
+        randomPos = randomInt(tries.length);
+        dir = directions[tries[randomPos]];
 
-  let randomPos: number;
-  let dir: Direction;
-  let nextBloc: Bloc | null;
+        tries.splice(randomPos, 1);
 
-  if (bloc.bottom || bloc.top || bloc.right || bloc.left) {
+        if (!bloc[dir.dir]) {
+          nextBloc = null;
+          continue;
+        }
+
+        nextBloc = this.getBlocFromDirection(dir, bloc);
+
+        if (!nextBloc || nextBloc.pos !== null || !nextBloc[dir.reverseDir]) {
+          nextBloc = null;
+          continue;
+        }
+      } while (tries.length !== 0 && nextBloc === null);
+    }
+
+    if (!nextBloc) {
+      if (bloc.pos === 0) return;
+
+      const previousBloc = this.getPreviousBloc(bloc);
+
+      if (!previousBloc) return;
+
+      this.carveBloc(previousBloc, ++i);
+
+      return;
+    }
+
+    bloc[dir.dir] = false;
+    nextBloc[dir.reverseDir] = false;
+
+    nextBloc.pos = i;
+
+    if (i > maxPos) maxPos = i;
+
+    this.carveBloc(nextBloc, ++i);
+  }
+
+  private getPreviousBloc(bloc: Bloc): Bloc | null {
+    let prevBloc: Bloc | null = null;
+
+    directions.forEach((dir) => {
+      if (bloc[dir.dir]) return;
+
+      const b = this.getBlocFromDirection(dir, bloc);
+
+      if (!prevBloc || prevBloc.pos > b.pos) {
+        prevBloc = b;
+      }
+    });
+
+    return prevBloc;
+  }
+
+  private getBlocFromDirection(dir: Direction, bloc: Bloc): Bloc | null {
+    const x = bloc.x + dir.x;
+    const y = bloc.y + dir.y;
+
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
+
+    return this.grid[x][y];
+  }
+
+  private drawGrid() {
+    const canvas = createCanvas(this.width * this.gridSize, this.height * this.gridSize);
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'black';
+    ctx.font = `${this.gridSize / 3}px serif`;
+    ctx.lineWidth = this.strokeWeight;
+    ctx.lineCap = 'round';
+
+    let randomBloc: Bloc;
+
     do {
-      randomPos = randomInt(tries.length);
-      dir = directions[tries[randomPos]];
+      randomBloc = this.getRandomBloc();
+    } while (!randomBloc || randomBloc.pos === 0);
 
-      tries.splice(randomPos, 1);
+    for (let x = 0; x < this.grid.length; x++) {
+      const col = this.grid[x];
+      for (let y = 0; y < col.length; y++) {
+        const bloc = col[y];
 
-      if (!bloc[dir.dir]) {
-        nextBloc = null;
-        continue;
+        let color: string | null = null;
+
+        if (bloc.pos === 0) {
+          color = 'green';
+        }
+
+        if (bloc.pos === randomBloc.pos) {
+          color = 'red';
+        }
+
+        this.drawBloc(ctx, bloc, color);
       }
-
-      nextBloc = getBlocFromDirection(dir, bloc, grid);
-
-      if (!nextBloc || nextBloc.pos !== null || !nextBloc[dir.reverseDir]) {
-        nextBloc = null;
-        continue;
-      }
-    } while (tries.length !== 0 && nextBloc === null);
-  }
-
-  if (!nextBloc) {
-    if (bloc.pos === 0) return;
-
-    const previousBloc = getPreviousBloc(bloc, grid);
-
-    if (!previousBloc) return;
-
-    carveBloc(previousBloc, grid, ++i);
-
-    return;
-  }
-
-  bloc[dir.dir] = false;
-  nextBloc[dir.reverseDir] = false;
-
-  nextBloc.pos = i;
-
-  if (i > maxPos) maxPos = i;
-
-  carveBloc(nextBloc, grid, ++i);
-}
-
-function getPreviousBloc(bloc: Bloc, grid: Grid): Bloc | null {
-  let prevBloc: Bloc | null = null;
-
-  directions.forEach((dir) => {
-    if (bloc[dir.dir]) return;
-
-    const b = getBlocFromDirection(dir, bloc, grid);
-
-    if (!prevBloc || prevBloc.pos > b.pos) {
-      prevBloc = b;
     }
-  });
 
-  return prevBloc;
-}
+    const buffer = canvas.toBuffer('image/png');
+    fs.writeFileSync(__dirname + '/1.png', buffer);
+  }
 
-function getBlocFromDirection(dir: Direction, bloc: Bloc, grid: Grid): Bloc | null {
-  const x = bloc.x + dir.x;
-  const y = bloc.y + dir.y;
+  private getRandomBloc(): Bloc {
+    const [x, y] = [randomInt(this.width), randomInt(this.height)];
 
-  if (x < 0 || y < 0 || x >= width || y >= height) return null;
+    return this.grid[x][y];
+  }
 
-  return grid[x][y];
-}
+  private drawBloc(ctx: CanvasRenderingContext2D, bloc: Bloc, color: string | null = null) {
+    const l = bloc.x * this.gridSize;
+    const r = bloc.x * this.gridSize + this.gridSize;
 
-function drawGrid(ctx: CanvasRenderingContext2D, grid: Grid) {
-  let randomBloc: Bloc;
+    const t = bloc.y * this.gridSize;
+    const b = bloc.y * this.gridSize + this.gridSize;
 
-  do {
-    randomBloc = getRandomBloc(grid);
-  } while (!randomBloc || randomBloc.pos === 0);
-
-  for (let x = 0; x < grid.length; x++) {
-    const col = grid[x];
-    for (let y = 0; y < col.length; y++) {
-      const bloc = col[y];
-
-      let color: string | null = null;
-
-      if (bloc.pos === 0) {
-        color = 'green';
-      }
-
-      if (bloc.pos === randomBloc.pos) {
-        color = 'red';
-      }
-
-      drawBloc(ctx, bloc, color);
+    if (color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(
+        l + this.strokeWeight,
+        t + this.strokeWeight,
+        this.gridSize - this.strokeWeight * 2,
+        this.gridSize - this.strokeWeight * 2,
+      );
     }
+
+    // if (bloc.pos !== null) {
+    //   ctx.fillText(String(bloc.pos), l + gridSize / 5, b - gridSize / 5);
+    // }
+
+    ctx.beginPath();
+
+    if (bloc.bottom) {
+      ctx.moveTo(l, b);
+      ctx.lineTo(r, b);
+    }
+
+    if (bloc.top) {
+      ctx.moveTo(l, t);
+      ctx.lineTo(r, t);
+    }
+
+    if (bloc.left) {
+      ctx.moveTo(l, t);
+      ctx.lineTo(l, b);
+    }
+
+    if (bloc.right) {
+      ctx.moveTo(r, t);
+      ctx.lineTo(r, b);
+    }
+
+    ctx.stroke();
   }
-}
-
-function getRandomBloc(grid: Grid): Bloc {
-  const [x, y] = [randomInt(width), randomInt(height)];
-
-  return grid[x][y];
-}
-
-function drawBloc(ctx: CanvasRenderingContext2D, bloc: Bloc, color: string | null = null) {
-  const l = bloc.x * gridSize;
-  const r = bloc.x * gridSize + gridSize;
-
-  const t = bloc.y * gridSize;
-  const b = bloc.y * gridSize + gridSize;
-
-  if (color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(l + strokeWeight, t + strokeWeight, gridSize - strokeWeight * 2, gridSize - strokeWeight * 2);
-  }
-
-  // if (bloc.pos !== null) {
-  //   ctx.fillText(String(bloc.pos), l + gridSize / 5, b - gridSize / 5);
-  // }
-
-  ctx.beginPath();
-
-  if (bloc.bottom) {
-    ctx.moveTo(l, b);
-    ctx.lineTo(r, b);
-  }
-
-  if (bloc.top) {
-    ctx.moveTo(l, t);
-    ctx.lineTo(r, t);
-  }
-
-  if (bloc.left) {
-    ctx.moveTo(l, t);
-    ctx.lineTo(l, b);
-  }
-
-  if (bloc.right) {
-    ctx.moveTo(r, t);
-    ctx.lineTo(r, b);
-  }
-
-  ctx.stroke();
-}
-
-/**
- * if no max given, return a number between 0 and min
- *
- * @param min min value
- * @param max max value
- * @returns random number
- */
-function randomInt(min: number, max: number | null = null): number {
-  return Math.floor(Math.random() * (max ? max - min : min) + (max ? min : 0));
 }
