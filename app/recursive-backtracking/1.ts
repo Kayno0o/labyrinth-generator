@@ -54,6 +54,8 @@ export class Maze {
   }
 
   public generateMaze() {
+    console.log('\n\n-- generating maze... --');
+
     this.grid = [...Array(this.width)].map((_, x) => [...Array(this.height)].map((_, y) => new Bloc(x, y)));
 
     this.canvas = createCanvas(this.width * this.gridSize, this.height * this.gridSize);
@@ -66,10 +68,14 @@ export class Maze {
       this.end = this.getRandomBloc();
     } while (!this.end || this.end.pos === 0);
 
-    this.carveBloc(this.start, 1);
+    this.carveGrid();
+
+    console.log('-- maze generated --');
   }
 
   public drawMaze() {
+    console.log('\n\n-- drawing maze... --');
+
     this.ctx.fillStyle = 'white';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -94,6 +100,8 @@ export class Maze {
         this.drawBloc(bloc, color);
       }
     }
+
+    console.log('-- maze drawn --');
   }
 
   public drawSolution(color: string = 'blue', strokeWeight = 10) {
@@ -129,31 +137,40 @@ export class Maze {
     fs.writeFileSync(path, buffer);
   }
 
-  private carveBloc(bloc: Bloc, i = 0): Bloc | null {
-    let [nextBloc, dir] = this.getNextBloc(bloc);
+  private carveGrid(): Bloc | null {
+    let i = 1;
 
-    if (!nextBloc) {
-      if (bloc.pos === 0) return;
+    let bloc = this.start;
 
-      do {
-        bloc = this.getPreviousBloc(bloc);
+    do {
+      let [nextBloc, dir] = this.getNextBloc(bloc);
 
-        if (!bloc || bloc.pos === 0) return;
+      if (!nextBloc) {
+        if (bloc.pos === 0) return;
 
-        [nextBloc, dir] = this.getNextBloc(bloc);
-      } while (!nextBloc);
+        do {
+          bloc = this.getPreviousBloc(bloc);
 
-      return this.carveBloc(bloc, ++i);
-    }
+          if (!bloc || bloc.pos === 0) return;
 
-    bloc.value -= dir;
-    nextBloc.value -= OPPOSITES[dir];
+          [nextBloc, dir] = this.getNextBloc(bloc);
+        } while (!nextBloc);
 
-    nextBloc.pos = i;
+        ++i;
+        continue;
+      }
 
-    if (i > maxPos) maxPos = i;
+      bloc.value -= dir;
+      nextBloc.value -= OPPOSITES[dir];
 
-    return this.carveBloc(nextBloc, ++i);
+      nextBloc.pos = i;
+
+      if (i > maxPos) maxPos = i;
+
+      ++i;
+      bloc = nextBloc;
+      continue;
+    } while (true);
   }
 
   private getNextBloc(bloc: Bloc): [Bloc | null, number] {
