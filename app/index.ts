@@ -1,6 +1,6 @@
-import { Maze } from './recursive-backtracking/1';
+import { BacktrackingMaze } from './backtracking';
 
-const maze = new Maze(40, 40, 6, 2, false);
+const maze = new BacktrackingMaze(40, 40, 6, 2, false);
 
 maze.drawMaze();
 
