@@ -25,7 +25,11 @@ export default class Bloc {
   }
 
   get isCarved() {
-    return !this.E || !this.W || !this.N || !this.S;
+    return !this.isUncarved;
+  }
+
+  get isUncarved() {
+    return this.E && this.W && this.N && this.S;
   }
 
   constructor(x: number, y: number) {

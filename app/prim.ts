@@ -1,64 +1,43 @@
-import { randomInt } from 'crypto';
 import Bloc from './entity/Bloc';
 import Maze from './entity/Maze';
-import { E, N, S, W, OPPOSITES } from './types';
+import { walls } from './types';
+import { randomInt } from './utils';
 
 export class PrimMaze extends Maze {
   frontiers: Array<Bloc> = [];
 
   protected carveGrid() {
+    let i = 0;
+
     let bloc = this.start;
-    let i = 1;
+    this.frontiers = this.uncarvedNeighbours(bloc);
 
-    this.frontiers = [];
-    this.frontiers = this.frontiers.concat(this.uncarvedNeighbours(bloc).filter((n) => !this.frontiers.includes(n)));
+    do {
+      this.filterFrontiers();
+      if (this.frontiers.length === 0) return;
 
-    this.carveRandomNeighbour(i);
-  }
+      const frontier = this.frontiers[randomInt(this.frontiers.length)];
+      this.frontiers.push(...this.uncarvedNeighbours(frontier));
 
-  private carveRandomNeighbour(i: number) {
-    const frontier = this.frontiers[randomInt(this.frontiers.length)];
+      const blocs = this.carvedNeighbours(frontier);
+      bloc = blocs[randomInt(blocs.length)];
 
-    const neighbours = this.carvedNeighbours(frontier);
-    const neighbour = neighbours[randomInt(neighbours.length)];
+      const dir = this.getDirFromBlocs(frontier, bloc);
+      if (dir !== -1) this.carveBlocs(bloc, frontier, dir);
 
-    const dirX = frontier.x - neighbour.x;
-    const dirY = frontier.y - neighbour.y;
-
-    if (dirY === 0) {
-      if (dirX === -1) {
-        frontier.value -= W;
-        neighbour.value -= OPPOSITES[W];
-      }
-      if (dirX === 1) {
-        frontier.value -= E;
-        neighbour.value -= OPPOSITES[E];
-      }
-    }
-
-    if (dirX === 0) {
-      if (dirY === -1) {
-        frontier.value -= N;
-        neighbour.value -= OPPOSITES[N];
-      }
-      if (dirY === 1) {
-        frontier.value -= S;
-        neighbour.value -= OPPOSITES[S];
-      }
-    }
-
-    frontier.pos = i;
-
-    console.table([frontier, neighbour]);
+      frontier.pos = ++i;
+    } while (true);
   }
 
   private neighbours(bloc: Bloc): Array<Bloc> {
     const neighbours = [];
 
-    [N, S, E, W].forEach((dir) => {
+    const tries = [...walls];
+
+    tries.forEach((dir) => {
       const neighbour = this.getBlocFromDirection(dir, bloc);
 
-      if (neighbour !== null && !neighbour.isCarved) {
+      if (neighbour !== null) {
         neighbours.push(neighbour);
       }
     });
@@ -71,6 +50,10 @@ export class PrimMaze extends Maze {
   }
 
   private uncarvedNeighbours(bloc: Bloc): Array<Bloc> {
-    return this.neighbours(bloc).filter((n) => !n.isCarved);
+    return this.neighbours(bloc).filter((n) => n.isUncarved);
+  }
+
+  private filterFrontiers() {
+    this.frontiers = this.frontiers.filter((bloc) => bloc.isUncarved);
   }
 }

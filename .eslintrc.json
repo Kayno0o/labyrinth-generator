@@ -9,7 +9,7 @@
     "ecmaVersion": "latest",
     "sourceType": "module"
   },
-  "plugins": ["@typescript-eslint", "unused-imports", "sort-keys-fix", "sort-exports"],
+  "plugins": ["@typescript-eslint", "unused-imports", "sort-keys-fix"],
   "rules": {
     "max-lines": [
       "warn",
@@ -22,12 +22,6 @@
     "no-catch-shadow": "warn",
     "no-unused-vars": "off",
     "require-await": "warn",
-    "sort-exports/sort-exports": [
-      "warn",
-      {
-        "sortDir": "asc"
-      }
-    ],
     "sort-imports": [
       "warn",
       {

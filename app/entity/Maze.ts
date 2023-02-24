@@ -1,5 +1,5 @@
 import { randomInt } from 'crypto';
-import { E, Grid, N, S, W, directions } from './../types';
+import { E, Grid, N, OPPOSITES, S, W, Wall, directions } from './../types';
 import { Canvas, CanvasRenderingContext2D, createCanvas } from 'canvas';
 import Bloc from './Bloc';
 import fs from 'fs';
@@ -129,6 +129,40 @@ export default class Maze {
     } while (!this.end || this.end.pos === 0);
   }
 
+  protected carveBlocs(bloc: Bloc, nextBloc: Bloc, dir: Wall) {
+    bloc.value -= dir;
+    nextBloc.value -= OPPOSITES[dir];
+  }
+
+  protected saveBloc(bloc: Bloc) {
+    this.grid[bloc.x][bloc.y] = bloc;
+  }
+
+  protected getDirFromBlocs(from: Bloc, to: Bloc): Wall | -1 {
+    const dirX = from.x - to.x;
+    const dirY = from.y - to.y;
+
+    if (dirY === 0) {
+      if (dirX === -1) {
+        return W;
+      }
+      if (dirX === 1) {
+        return E;
+      }
+    }
+
+    if (dirX === 0) {
+      if (dirY === -1) {
+        return N;
+      }
+      if (dirY === 1) {
+        return S;
+      }
+    }
+
+    return -1;
+  }
+
   protected getRandomBloc(): Bloc {
     const [x, y] = [randomInt(this.width), randomInt(this.height)];
 
@@ -156,9 +190,9 @@ export default class Maze {
     return prevBloc;
   }
 
-  protected getBlocFromDirection(dir: number, bloc: Bloc): Bloc | null {
-    const x = bloc.x + directions[dir][0];
-    const y = bloc.y + directions[dir][1];
+  protected getBlocFromDirection(dir: Wall, bloc: Bloc): Bloc | null {
+    const x = bloc.x + directions[dir].x;
+    const y = bloc.y + directions[dir].y;
 
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
 

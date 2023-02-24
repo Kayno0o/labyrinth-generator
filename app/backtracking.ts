@@ -1,5 +1,5 @@
 import { randomInt } from './utils';
-import { E, N, OPPOSITES, S, W } from './types';
+import { OPPOSITES, Wall, walls } from './types';
 import Maze from './entity/Maze';
 import Bloc from './entity/Bloc';
 
@@ -28,8 +28,7 @@ export class BacktrackingMaze extends Maze {
         continue;
       }
 
-      bloc.value -= dir;
-      nextBloc.value -= OPPOSITES[dir];
+      this.carveBlocs(bloc, nextBloc, dir);
 
       nextBloc.pos = i;
 
@@ -41,14 +40,14 @@ export class BacktrackingMaze extends Maze {
     } while (true);
   }
 
-  private getNextBloc(bloc: Bloc): [Bloc | null, number] {
-    const tries = [1, 2, 4, 8];
+  private getNextBloc(bloc: Bloc): [Bloc | null, Wall] {
+    const tries = [...walls];
 
-    let dir: number;
+    let dir: Wall;
     let randomPos: number;
     let nextBloc: Bloc | null;
 
-    if (bloc.value & S || bloc.value & N || bloc.value & E || bloc.value & W) {
+    if (bloc.S || bloc.N || bloc.E || bloc.W) {
       do {
         randomPos = randomInt(tries.length);
         dir = tries[randomPos];
