@@ -1,9 +1,20 @@
+import { PrimMaze } from './prim';
 import { BacktrackingMaze } from './backtracking';
 
-const maze = new BacktrackingMaze(40, 40, 6, 2, false);
+// backtrackingMaze();
+primMaze();
 
-maze.drawMaze();
+function backtrackingMaze() {
+  const backtrackingMaze = new BacktrackingMaze(40, 40, 6, 2, false);
 
-// maze.drawSolution('blue', 2);
+  backtrackingMaze.drawMaze();
+  // backtrackingMaze.drawSolution('blue', 2);
+  backtrackingMaze.saveCanvas('backtracking.png');
+}
 
-maze.saveCanvas();
+function primMaze() {
+  const primMaze = new PrimMaze(20, 20, 100, 20, false);
+
+  primMaze.drawMaze();
+  primMaze.saveCanvas('prims.png');
+}

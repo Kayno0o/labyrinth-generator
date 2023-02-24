@@ -4,7 +4,7 @@ import Maze from './entity/Maze';
 import Bloc from './entity/Bloc';
 
 export class BacktrackingMaze extends Maze {
-  protected carveGrid(): Bloc | null {
+  protected carveGrid() {
     let i = 1;
 
     let bloc = this.start;

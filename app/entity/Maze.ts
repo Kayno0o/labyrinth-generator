@@ -70,7 +70,7 @@ export default class Maze {
           color = 'green';
         }
 
-        if (bloc.pos === this.end.pos) {
+        if (bloc.pos !== null && bloc.pos === this.end.pos) {
           color = 'red';
         }
 
@@ -135,7 +135,7 @@ export default class Maze {
     return this.grid[x][y];
   }
 
-  public saveCanvas(path: string = __dirname + '/backtracking.png') {
+  public saveCanvas(path: string = __dirname + '/maze.png') {
     const buffer = this.canvas.toBuffer('image/png');
     fs.writeFileSync(path, buffer);
   }

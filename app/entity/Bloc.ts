@@ -24,12 +24,16 @@ export default class Bloc {
     return this.value & W;
   }
 
+  get isCarved() {
+    return !this.E || !this.W || !this.N || !this.S;
+  }
+
   constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
   }
 
-  draw(maze: Maze, color: string | null = null) {
+  public draw(maze: Maze, color: string | null = null) {
     const l = this.x * maze.gridSize;
     const r = this.x * maze.gridSize + maze.gridSize;
 
@@ -46,8 +50,10 @@ export default class Bloc {
       );
     }
 
-    if (maze.hasRainbowGrid)
+    if (maze.hasRainbowGrid) {
       maze.ctx.strokeStyle = `hsl(${map(this.x + this.y, 0, maze.width + maze.height, 0, 360)} 80% 40%)`;
+    }
+
     maze.ctx.beginPath();
 
     if (this.S) {
