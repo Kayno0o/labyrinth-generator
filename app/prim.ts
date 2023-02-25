@@ -1,23 +1,22 @@
 import Bloc from './entity/Bloc';
 import Maze from './entity/Maze';
-import { walls } from './types';
 import { randomInt } from './utils';
 
 export class PrimMaze extends Maze {
   frontiers: Array<Bloc> = [];
 
   protected carveGrid() {
+    this.frontiers = [];
     let i = 0;
 
     let bloc = this.start;
-    this.frontiers = this.uncarvedNeighbours(bloc);
+    this.addUncarvedNeighbours(bloc);
 
-    do {
-      this.filterFrontiers();
+    while (true) {
       if (this.frontiers.length === 0) return;
 
-      const frontier = this.frontiers[randomInt(this.frontiers.length)];
-      this.frontiers.push(...this.uncarvedNeighbours(frontier));
+      const frontierIndex = randomInt(this.frontiers.length);
+      const frontier = this.frontiers[frontierIndex];
 
       const blocs = this.carvedNeighbours(frontier);
       bloc = blocs[randomInt(blocs.length)];
@@ -25,35 +24,22 @@ export class PrimMaze extends Maze {
       const dir = this.getDirFromBlocs(frontier, bloc);
       if (dir !== -1) this.carveBlocs(bloc, frontier, dir);
 
+      this.addUncarvedNeighbours(frontier);
+
       frontier.pos = ++i;
-    } while (true);
+
+      this.frontiers.splice(frontierIndex, 1);
+    }
   }
 
-  private neighbours(bloc: Bloc): Array<Bloc> {
-    const neighbours = [];
+  private addUncarvedNeighbours(bloc: Bloc) {
+    const neighbours = this.uncarvedNeighbours(bloc);
 
-    const tries = [...walls];
+    for (let i = 0; i < neighbours.length; i++) {
+      if (neighbours[i].pos === -1) continue;
 
-    tries.forEach((dir) => {
-      const neighbour = this.getBlocFromDirection(dir, bloc);
-
-      if (neighbour !== null) {
-        neighbours.push(neighbour);
-      }
-    });
-
-    return neighbours;
-  }
-
-  private carvedNeighbours(bloc: Bloc): Array<Bloc> {
-    return this.neighbours(bloc).filter((n) => n.isCarved || n.pos === 0);
-  }
-
-  private uncarvedNeighbours(bloc: Bloc): Array<Bloc> {
-    return this.neighbours(bloc).filter((n) => n.isUncarved);
-  }
-
-  private filterFrontiers() {
-    this.frontiers = this.frontiers.filter((bloc) => bloc.isUncarved);
+      this.frontiers.push(neighbours[i]);
+      neighbours[i].pos = -1;
+    }
   }
 }

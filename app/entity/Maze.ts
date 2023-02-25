@@ -1,5 +1,5 @@
 import { randomInt } from 'crypto';
-import { E, Grid, N, OPPOSITES, S, W, Wall, directions } from './../types';
+import { E, Grid, N, OPPOSITES, S, W, Wall, directions, walls } from './../types';
 import { Canvas, CanvasRenderingContext2D, createCanvas } from 'canvas';
 import Bloc from './Bloc';
 import fs from 'fs';
@@ -33,7 +33,9 @@ export default class Maze {
   }
 
   public generateMaze() {
-    console.log('\n\n-- generating maze... --');
+    const label = `Generating ${this.constructor.name}`;
+
+    console.time(label);
 
     this.initCanvas();
 
@@ -43,7 +45,7 @@ export default class Maze {
 
     this.carveGrid();
 
-    console.log('-- maze generated ! --');
+    console.timeEnd(label);
   }
 
   protected carveGrid() {
@@ -51,7 +53,9 @@ export default class Maze {
   }
 
   public drawMaze() {
-    console.log('\n\n-- drawing maze... --');
+    const label = `Drawing ${this.constructor.name}`;
+
+    console.time(label);
 
     this.ctx.fillStyle = 'white';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -78,7 +82,7 @@ export default class Maze {
       }
     }
 
-    console.log('-- maze drawn --');
+    console.timeEnd(label);
   }
 
   public drawSolution(color: string = 'blue', strokeWeight = 10) {
@@ -197,5 +201,29 @@ export default class Maze {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
 
     return this.grid[x][y];
+  }
+
+  protected neighbours(bloc: Bloc): Array<Bloc> {
+    const neighbours = [];
+
+    const tries = [...walls];
+
+    tries.forEach((dir) => {
+      const neighbour = this.getBlocFromDirection(dir, bloc);
+
+      if (neighbour !== null) {
+        neighbours.push(neighbour);
+      }
+    });
+
+    return neighbours;
+  }
+
+  protected carvedNeighbours(bloc: Bloc): Array<Bloc> {
+    return this.neighbours(bloc).filter((n) => n.isCarved || n.pos === 0);
+  }
+
+  protected uncarvedNeighbours(bloc: Bloc): Array<Bloc> {
+    return this.neighbours(bloc).filter((n) => n.isUncarved && n.pos === null);
   }
 }

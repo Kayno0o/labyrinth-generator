@@ -8,6 +8,10 @@ export default class Bloc {
   x: number;
   y: number;
 
+  get id() {
+    return `${this.x},${this.y}`;
+  }
+
   get E() {
     return this.value & E;
   }

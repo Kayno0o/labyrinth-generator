@@ -19,3 +19,5 @@ export const directions: { [key in Wall]: { x: number; y: number } } = {
   [S]: { x: 0, y: 1 },
   [W]: { x: -1, y: 0 },
 };
+
+export type Dictionnary<T = any> = { [key: string]: T };
