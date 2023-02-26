@@ -63,33 +63,24 @@ export default class Maze {
     this.ctx.lineWidth = this.strokeWeight;
     this.ctx.lineCap = 'round';
 
+    this.start.draw(this, 'green');
+    this.end.draw(this, 'red');
+
     for (let x = 0; x < this.grid.length; x++) {
       const col = this.grid[x];
       for (let y = 0; y < col.length; y++) {
-        const bloc = col[y];
-
-        let color: string | null = null;
-
-        if (bloc.pos === 0) {
-          color = 'green';
-        }
-
-        if (bloc.pos !== null && bloc.pos === this.end.pos) {
-          color = 'red';
-        }
-
-        bloc.draw(this, color);
+        col[y].draw(this);
       }
     }
 
     console.timeEnd(label);
   }
 
-  public drawSolution(color: string = 'blue', strokeWeight = 10) {
+  public drawSolution(color: string = 'blue') {
     let previousBloc: Bloc | null = this.end;
 
     this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = strokeWeight;
+    this.ctx.lineWidth = this.gridSize - this.strokeWeight * 2;
 
     do {
       const [x1, y1] = [
@@ -111,6 +102,9 @@ export default class Maze {
       this.ctx.lineTo(x2, y2);
       this.ctx.stroke();
     } while (previousBloc && previousBloc.pos !== 0);
+
+    this.start.draw(this, 'green');
+    this.end.draw(this, 'red');
   }
 
   protected initCanvas() {

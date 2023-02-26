@@ -21,3 +21,19 @@ export const directions: { [key in Wall]: { x: number; y: number } } = {
 };
 
 export type Dictionnary<T = any> = { [key: string]: T };
+
+export type LabyrinthType = 'prims' | 'backtracking';
+
+export const labyrinthTypes: Array<LabyrinthType> = ['prims', 'backtracking'];
+
+export class LabyrinthProps {
+  blocSize: number = 40;
+  drawMaze: boolean = true;
+  drawSolution: boolean = true;
+  height: number = -1;
+  lineWidth: number = 10;
+  rainbowGrid: boolean = false;
+  size: number = 40;
+  type: LabyrinthType = 'backtracking';
+  width: number = -1;
+}

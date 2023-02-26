@@ -51,11 +51,12 @@ export default class Bloc {
     if (color) {
       maze.ctx.fillStyle = color;
       maze.ctx.fillRect(
-        l + maze.strokeWeight,
-        t + maze.strokeWeight,
-        maze.gridSize - maze.strokeWeight * 2,
-        maze.gridSize - maze.strokeWeight * 2,
+        l + maze.strokeWeight / 2,
+        t + maze.strokeWeight / 2,
+        maze.gridSize - maze.strokeWeight,
+        maze.gridSize - maze.strokeWeight,
       );
+      return;
     }
 
     if (maze.hasRainbowGrid) {
