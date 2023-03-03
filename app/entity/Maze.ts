@@ -1,5 +1,5 @@
 import { randomInt } from 'crypto';
-import { E, Grid, N, OPPOSITES, S, W, Wall, directions, walls } from './../types';
+import { E, Grid, MazeProps as MazeProps, N, OPPOSITES, S, W, Wall, directions, walls } from './../types';
 import { Canvas, CanvasRenderingContext2D, createCanvas } from 'canvas';
 import Bloc from './Bloc';
 import fs from 'fs';
@@ -15,35 +15,41 @@ export default class Maze {
   start: Bloc;
   end: Bloc;
   hasRainbowGrid: boolean;
+  benchmark: boolean;
 
-  constructor(
-    width: number = 20,
-    height: number = 20,
-    gridSize: number = 100,
-    strokeWeight: number = 30,
-    hasRainbowGrid: boolean = false,
-  ) {
-    this.width = width;
-    this.height = height;
-    this.gridSize = gridSize;
-    this.strokeWeight = strokeWeight;
-    this.hasRainbowGrid = hasRainbowGrid;
+  constructor(props: MazeProps) {
+    this.width = Math.max(2, props.width > 0 ? props.width : props.size);
+    this.height = Math.max(2, props.height > 0 ? props.height : props.size);
+
+    this.gridSize = props.blocSize;
+    this.strokeWeight = props.lineWidth;
+    this.hasRainbowGrid = props.rainbowGrid;
+
+    this.benchmark = props.benchmark;
 
     this.generateMaze();
   }
 
   public generateMaze() {
-    const label = `Generating ${this.constructor.name}`;
+    let i = 0;
+    let benchmark = 500;
+
+    const label = this.benchmark
+      ? `Generating ${benchmark} ${this.constructor.name}`
+      : `Generating ${this.constructor.name}`;
 
     console.time(label);
 
-    this.initCanvas();
+    do {
+      this.initCanvas();
 
-    this.initGrid();
-    this.initStart();
-    this.initEnd();
+      this.initGrid();
+      this.initStart();
+      this.initEnd();
 
-    this.carveGrid();
+      this.carveGrid();
+      ++i;
+    } while (this.benchmark && i < benchmark);
 
     console.timeEnd(label);
   }
@@ -175,9 +181,7 @@ export default class Maze {
   protected getPreviousBloc(bloc: Bloc): Bloc | null {
     let prevBloc: Bloc | null = null;
 
-    [N, S, E, W].forEach((dir) => {
-      if (bloc.value & dir) return;
-
+    bloc.paths.forEach((dir) => {
       const b = this.getBlocFromDirection(dir, bloc);
 
       if (!prevBloc || prevBloc.pos > b.pos) {

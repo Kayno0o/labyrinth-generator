@@ -1,3 +1,4 @@
+import { Wall } from './../types';
 import { E, N, S, W } from '../types';
 import { map } from '../utils';
 import Maze from './Maze';
@@ -34,6 +35,28 @@ export default class Bloc {
 
   get isUncarved() {
     return this.E && this.W && this.N && this.S;
+  }
+
+  get walls(): Array<Wall> {
+    const walls = [];
+
+    if (this.E) walls.push(E);
+    if (this.N) walls.push(N);
+    if (this.S) walls.push(S);
+    if (this.W) walls.push(W);
+
+    return walls;
+  }
+
+  get paths(): Array<Wall> {
+    const paths = [];
+
+    if (!this.E) paths.push(E);
+    if (!this.N) paths.push(N);
+    if (!this.S) paths.push(S);
+    if (!this.W) paths.push(W);
+
+    return paths;
   }
 
   constructor(x: number, y: number) {

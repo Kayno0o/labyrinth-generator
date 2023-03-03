@@ -1,5 +1,5 @@
 import { randomInt } from './utils';
-import { OPPOSITES, Wall, walls } from './types';
+import { Wall } from './types';
 import Maze from './entity/Maze';
 import Bloc from './entity/Bloc';
 
@@ -8,60 +8,43 @@ export class BacktrackingMaze extends Maze {
     let i = 1;
 
     let bloc = this.start;
-    let maxPos = 0;
 
     do {
       let [nextBloc, dir] = this.getNextBloc(bloc);
 
-      if (!nextBloc) {
+      while (!nextBloc) {
         if (bloc.pos === 0) return;
 
-        do {
-          bloc = this.getPreviousBloc(bloc);
+        bloc = this.getPreviousBloc(bloc);
 
-          if (!bloc || bloc.pos === 0) return;
+        if (!bloc || bloc.pos === 0) return;
 
-          [nextBloc, dir] = this.getNextBloc(bloc);
-        } while (!nextBloc);
-
-        ++i;
-        continue;
+        [nextBloc, dir] = this.getNextBloc(bloc);
       }
 
       this.carveBlocs(bloc, nextBloc, dir);
 
-      nextBloc.pos = i;
-
-      if (i > maxPos) maxPos = i;
-
-      ++i;
       bloc = nextBloc;
-      continue;
+      bloc.pos = i++;
     } while (true);
   }
 
   private getNextBloc(bloc: Bloc): [Bloc | null, Wall] {
-    const tries = [...walls];
-
     let dir: Wall;
-    let randomPos: number;
-    let nextBloc: Bloc | null;
+    let nextBloc: Bloc | null = null;
 
-    if (bloc.S || bloc.N || bloc.E || bloc.W) {
+    if (bloc.value > 0) {
+      const tries = bloc.walls;
+
       do {
-        randomPos = randomInt(tries.length);
+        const randomPos = randomInt(tries.length);
         dir = tries[randomPos];
 
         tries.splice(randomPos, 1);
 
-        if (!(bloc.value & dir)) {
-          nextBloc = null;
-          continue;
-        }
-
         nextBloc = this.getBlocFromDirection(dir, bloc);
 
-        if (!nextBloc || nextBloc.pos !== null || !(nextBloc.value & OPPOSITES[dir])) {
+        if (!nextBloc || nextBloc.pos !== null) {
           nextBloc = null;
           continue;
         }

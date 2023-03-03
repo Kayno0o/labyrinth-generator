@@ -22,18 +22,19 @@ export const directions: { [key in Wall]: { x: number; y: number } } = {
 
 export type Dictionnary<T = any> = { [key: string]: T };
 
-export type LabyrinthType = 'prims' | 'backtracking';
+export type MazeType = 'prims' | 'backtracking';
 
-export const labyrinthTypes: Array<LabyrinthType> = ['prims', 'backtracking'];
+export const labyrinthTypes: Array<MazeType> = ['prims', 'backtracking'];
 
-export class LabyrinthProps {
+export class MazeProps {
   blocSize: number = 40;
-  drawMaze: boolean = true;
-  drawSolution: boolean = true;
+  draw: boolean = true;
+  solution: boolean = true;
   height: number = -1;
   lineWidth: number = 10;
   rainbowGrid: boolean = false;
   size: number = 40;
-  type: LabyrinthType = 'backtracking';
+  type: MazeType | 'all' = 'backtracking';
   width: number = -1;
+  benchmark: boolean = false;
 }

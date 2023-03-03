@@ -1,77 +1,87 @@
-import { LabyrinthProps, LabyrinthType, labyrinthTypes } from './types';
+import { MazeProps, MazeType, labyrinthTypes } from './types';
 import { PrimMaze } from './prim';
 import { BacktrackingMaze } from './backtracking';
+import Maze from './entity/Maze';
 
-function error(message: string) {
+function log(message: string, code = 1) {
   console.log(message);
-  process.exit(1);
+  process.exit(code);
 }
 
 function main(args: Array<string>) {
   console.clear();
 
-  const props = new LabyrinthProps();
-
-  console.log(
-    `Available props: ${Object.entries(props)
-      .map(([key, value]) => `--${key}=${typeof value}`)
-      .join(', ')}`,
-  );
-
+  const props = new MazeProps();
   args.forEach((arg) => {
+    if (arg === '--help') {
+      log(
+        `Available props: ${Object.entries(props)
+          .map(([key, value]) => `\n  --${key}=${typeof value}`)
+          .join(', ')}`,
+        0,
+      );
+    }
+
     if (arg.startsWith('--') && arg.includes('=')) {
       arg = arg.substring(2);
 
       const [key, value] = arg.split('=');
 
-      if (props[key]) {
+      if (props[key] !== undefined) {
         if (typeof props[key] === 'string') {
-          if (key === 'type' && labyrinthTypes.includes(value as LabyrinthType)) {
-            props[key] = value as LabyrinthType;
-          } else {
-            error(`Type ${value} does not exist.\nAllowed types are '${labyrinthTypes.join("', '")}'`);
-          }
+          props[key] = value;
         } else if (typeof props[key] === 'number') {
           if (isNaN(parseInt(value))) {
-            error(`Invalid value for parameter ${key}. Expected value of type int`);
+            log(`Invalid value for parameter ${key}. Expected value of type int`);
           }
           props[key] = Math.abs(parseInt(value));
         } else if (typeof props[key] === 'boolean') {
-          if (
-            (value !== 'true' && value !== 'false' && isNaN(parseInt(value))) ||
-            (!isNaN(parseInt(value)) && parseInt(value) !== 0 && parseInt(value) !== 1)
-          ) {
-            error(`Invalid value for parameter ${key}. Expected value : 0, 1, false, true`);
+          if (value === 'true' || value === '1') {
+            props[key] = true;
+          } else if (value === 'false' || value === '0') {
+            props[key] = false;
+          } else {
+            log(`Invalid value for parameter ${key}. Expected value : 0, 1, false, true`);
           }
-          props[key] = !!value;
         }
       }
     }
   });
 
-  let mazeClass: any | null;
+  const mazes: { [key in MazeType]: typeof Maze } = {
+    backtracking: BacktrackingMaze,
+    prims: PrimMaze,
+  };
 
-  if (props.type === 'prims') {
-    mazeClass = PrimMaze;
+  let mazeClasses: Array<typeof Maze> = [];
+
+  if (props.type === 'all') {
+    mazeClasses = Object.values(mazes);
+  } else {
+    mazeClasses.push(mazes[props.type]);
   }
 
-  if (props.type === 'backtracking') {
-    mazeClass = BacktrackingMaze;
+  if (!mazeClasses) {
+    log(`Maze type ${props.type} does not exist.\nAllowed types are '${labyrinthTypes.join("', '")}'`);
   }
 
-  if (mazeClass) {
-    const backtrackingMaze = new mazeClass(
-      props.width > 0 ? props.width : props.size,
-      props.height > 0 ? props.height : props.size,
-      props.blocSize,
-      props.lineWidth,
-      props.rainbowGrid,
-    );
+  console.log(
+    `Parameters: ${Object.entries(props)
+      .map(([key, value]) => `\n  --${key}=${value}`)
+      .join(', ')}`,
+  );
 
-    if (props.drawMaze) backtrackingMaze.drawMaze();
-    if (props.drawMaze && props.drawSolution) backtrackingMaze.drawSolution('blue');
-    if (props.drawMaze) backtrackingMaze.saveCanvas(`${props.type}.png`);
-  }
+  console.log();
+
+  mazeClasses.forEach((mazeClass) => {
+    const maze = new mazeClass(props);
+
+    if (props.draw) maze.drawMaze();
+    if (props.draw && props.solution) maze.drawSolution('blue');
+    if (props.draw) maze.saveCanvas(`${props.type}.png`);
+  });
+
+  console.log();
 }
 
 const args = process.argv;
