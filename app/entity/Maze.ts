@@ -130,7 +130,7 @@ export default class Maze {
   protected initEnd() {
     do {
       this.end = this.getRandomBloc();
-    } while (!this.end || this.end.pos === 0);
+    } while (this.end.pos === 0);
   }
 
   protected carveBlocs(bloc: Bloc, nextBloc: Bloc, dir: Wall) {
@@ -167,15 +167,12 @@ export default class Maze {
     return -1;
   }
 
-  protected getRandomBloc(): Bloc {
-    const [x, y] = [randomInt(this.width), randomInt(this.height)];
+  protected getRandomBloc = (): Bloc => {
+    return this.grid[randomInt(this.width)][randomInt(this.height)];
+  };
 
-    return this.grid[x][y];
-  }
-
-  public saveCanvas(path: string = __dirname + '/maze.png') {
-    const buffer = this.canvas.toBuffer('image/png');
-    fs.writeFileSync(path, buffer);
+  public saveCanvas(path: string | null = null) {
+    fs.writeFileSync(path || `${this.constructor.name}.jpeg`, this.canvas.toBuffer('image/jpeg', { quality: 100 }));
   }
 
   protected getPreviousBloc(bloc: Bloc): Bloc | null {
@@ -204,9 +201,7 @@ export default class Maze {
   protected neighbours(bloc: Bloc): Array<Bloc> {
     const neighbours = [];
 
-    const tries = [...walls];
-
-    tries.forEach((dir) => {
+    [...walls].forEach((dir) => {
       const neighbour = this.getBlocFromDirection(dir, bloc);
 
       if (neighbour !== null) {
@@ -217,11 +212,9 @@ export default class Maze {
     return neighbours;
   }
 
-  protected carvedNeighbours(bloc: Bloc): Array<Bloc> {
-    return this.neighbours(bloc).filter((n) => n.isCarved || n.pos === 0);
-  }
+  protected carvedNeighbours = (bloc: Bloc): Array<Bloc> =>
+    this.neighbours(bloc).filter((n) => n.isCarved || n.pos === 0);
 
-  protected uncarvedNeighbours(bloc: Bloc): Array<Bloc> {
-    return this.neighbours(bloc).filter((n) => n.isUncarved && n.pos === null);
-  }
+  protected uncarvedNeighbours = (bloc: Bloc): Array<Bloc> =>
+    this.neighbours(bloc).filter((n) => n.isUncarved && n.pos === null);
 }

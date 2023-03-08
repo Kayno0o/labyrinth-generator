@@ -53,13 +53,7 @@ function main(args: Array<string>) {
     prims: PrimMaze,
   };
 
-  let mazeClasses: Array<typeof Maze> = [];
-
-  if (props.type === 'all') {
-    mazeClasses = Object.values(mazes);
-  } else {
-    mazeClasses.push(mazes[props.type]);
-  }
+  const mazeClasses: Array<typeof Maze> = props.type === 'all' ? Object.values(mazes) : [mazes[props.type]];
 
   if (!mazeClasses) {
     log(`Maze type ${props.type} does not exist.\nAllowed types are '${labyrinthTypes.join("', '")}'`);
@@ -76,9 +70,15 @@ function main(args: Array<string>) {
   mazeClasses.forEach((mazeClass) => {
     const maze = new mazeClass(props);
 
-    if (props.draw) maze.drawMaze();
-    if (props.draw && props.solution) maze.drawSolution('blue');
-    if (props.draw) maze.saveCanvas(`${props.type}.png`);
+    if (props.draw) {
+      maze.drawMaze();
+
+      if (props.solution) maze.drawSolution('blue');
+
+      maze.saveCanvas();
+    }
+
+    console.log();
   });
 
   console.log();
